@@ -209,7 +209,7 @@ pub fn base_layout(
                 }
                 (body)
                 footer {
-                    p { "© 2023 " (PreEscaped(domain)) }
+                    a href="/" { "© 2023 " (PreEscaped(domain)) }
                 }
             }
         }
