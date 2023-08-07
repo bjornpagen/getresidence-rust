@@ -135,7 +135,7 @@ form > label {
 }
 form > input, form > select, form > textarea {
 	height: calc(var(--row-height) * 1.5);
-	border: 2px solid #000;
+	border: 1px solid #000;
 	grid-column: 1 / span 4;
 	margin-bottom: calc(var(--row-height));
 	padding-left: calc(var(--row-height) / 4);
