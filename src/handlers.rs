@@ -129,7 +129,7 @@ form {
 	row-gap: 0;
 }
 form > label {
-	font-weight: 700;
+	font-style: italic;
 	grid-column: 1 / span 4;
 	margin-bottom: calc(var(--row-height) / 2);
 }
@@ -220,7 +220,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
             p { "Get legal residency and a corporation..." }
             p { "In one of the only zero tax countries in the world!" }
             p { "Just experience Dubai, and leave with your legal residency card and a Dubai corporation." }
-            a .btn1 href="/dubai/onboarding" {
+            a .btn1 href="#form" {
                 span { "Register Now." }
             }
         }
@@ -240,7 +240,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
                 dt { "Transportation To All Appointments" }
                 dd { "We will drive you to all the necessary appointments and show you exactly what you need to do." }
             }
-            a .btn1 href="/dubai/onboarding" {
+            a .btn1 href="#form" {
                 span { "Register Now." }
             }
         }
@@ -271,7 +271,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
                 em { "everything else." }
             }
             p { "You will actually leave Dubai with your residency card and your fully-formed Free Zone, zero-tax corporation!" }
-            a .btn1 href="/dubai/onboarding" {
+            a .btn1 href="#form" {
                 span { "Register Now." }
             }
         }
@@ -300,7 +300,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
                     p { "Once you leave on November 15th, you will have your residency card in your hand plus your fully formed Dubai Free Zone corporation. And now you save thousands upon thousands of dollars in taxes, legally!" }
                 }
             }
-            a .btn1 href="/dubai/onboarding" {
+            a .btn1 href="#form" {
                 span { "Register Now." }
             }
         }
@@ -328,38 +328,12 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
                 dt { "What if something comes up in my schedule and I have to cancel my trip?" }
                 dd { "No problem. If you have to cancel your November trip you can simply reschedule your trip for a later date, go to Dubai then, and we'll support you over the phone (instead of in-person) and coordinate with the attorneys remotely. Things will be slightly less convenient but we'll still make it work." }
             }
-            a .btn1 href="/dubai/onboarding" {
+            a .btn1 href="#form" {
                 span { "Register Now." }
             }
         }
-    };
-
-    const STYLES_LOCAL: &'static str = r#"
-	#hero img {
-		height: calc(var(--row-height) * 8);
-		width: 100%;
-		object-fit: cover;
-		object-position: center;
-	}
-	"#;
-
-    let body = base_layout(
-        "getresidence.org",
-        "Get Legal Residency in Dubai",
-        "Get Legal Residency in Dubai. Legally pay zero Taxes, or close to it!",
-        body,
-        STYLES_LOCAL,
-    );
-
-    Response::from_html(body.into_string())
-}
-
-pub async fn dubai_onboarding_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
-    let body = html! {
         section #form {
-            h1 { "Dubai Residence Onboarding." }
-            img src="https://imagedelivery.net/DYW9P4DJWiLboxGcOOuHaQ/fecc28ed-93fc-4498-f20b-364d27290100/public" alt="Dubai" {}
-            p { "Please fill out the following form to get started." }
+            h2 { "Please fill out the following form to get started." }
             form #submit method="POST" action="/api/dubai/onboarding" {
                 label for="name" { "Name" }
                 input type="text" name="name" id="name" required="required" {}
@@ -377,7 +351,7 @@ pub async fn dubai_onboarding_handler(_req: Request, _ctx: RouteContext<()>) -> 
     };
 
     const STYLES_LOCAL: &'static str = r#"
-	#form img {
+	#hero img {
 		height: calc(var(--row-height) * 8);
 		width: 100%;
 		object-fit: cover;

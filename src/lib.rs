@@ -8,7 +8,6 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     router
         .get_async("/dubai", handlers::dubai_handler)
-        .get_async("/dubai/onboarding", handlers::dubai_onboarding_handler)
         .get_async("/", handlers::redirect_dubai)
         .run(req, env)
         .await
