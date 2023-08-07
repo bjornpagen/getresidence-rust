@@ -17,7 +17,7 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 
 	padding-top: var(--row-height);
-	padding-bottom: calc(var(--row-height) * 4);
+	padding-bottom: calc(var(--row-height) * 3);
 	padding-left: calc(var(--row-height) / 2);
 	padding-right: calc(var(--row-height) / 2);
 
