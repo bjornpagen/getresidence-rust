@@ -12,10 +12,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 worker = "0.0.17"
-maud = "*"
 http = "0.2.9"
+maud = "*"
 
 [profile.release]
 lto = true
 strip = true
 codegen-units = 1
+opt-level = 3
