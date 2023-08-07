@@ -1,4 +1,3 @@
-use core::future::Future;
 use http::StatusCode;
 use maud::{html, PreEscaped, DOCTYPE};
 use worker::*;
@@ -195,7 +194,7 @@ pub fn base_layout(
     }
 }
 
-pub async fn dubai_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
     let body = html! {
         section #hero {
             h1 {"Get Legal Residency in Dubai." }
@@ -338,7 +337,7 @@ pub async fn dubai_handler(req: Request, ctx: RouteContext<()>) -> Result<Respon
     Response::from_html(body.into_string())
 }
 
-pub async fn dubai_onboarding_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+pub async fn dubai_onboarding_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
     let body = html! {
         section #form {
             h1 { "Dubai Residence Onboarding." }
