@@ -93,7 +93,6 @@ li {
 li::before {
 	content: counter(my-counter) ". ";
 	grid-column: 1;
-	margin-left: auto;
 }
 section {
 	display: grid;
