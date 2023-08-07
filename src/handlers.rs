@@ -183,6 +183,11 @@ pub fn base_layout(
             head {
                 title { (PreEscaped(title)) }
                 meta name="description" content=(PreEscaped(description)) {}
+                meta property="og:locale" content="en_US" {}
+                meta property="og:title" content=(PreEscaped(title)) {}
+                meta property="og:description" content=(PreEscaped(description)) {}
+                // TODO: meta property="og:image" content="https://example.com/image.jpg" {}
+                // TODO: meta property="og:image:alt" content="A description of what is in the image (not a caption)." {}
                 meta name="viewport" content="width=device-width, initial-scale=1" {}
                 style #reset {
                     (PreEscaped(STYLE_RESET))
