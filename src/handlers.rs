@@ -34,6 +34,11 @@ body {
 	font-family: var(--font-text);
 	font-weight: 400;
 }
+footer {
+	display: flex;
+	flex-direction: column;
+	gap: var(--row-height);
+}
 h1 {
 	font-size: 42px;
 	line-height: calc(var(--row-height) * 2);
@@ -210,6 +215,7 @@ pub fn base_layout(
                 (body)
                 footer {
                     a href="/" { "© 2023 " (PreEscaped(domain)) }
+                    a href="/privacy" { "privacy policy" }
                 }
             }
         }
