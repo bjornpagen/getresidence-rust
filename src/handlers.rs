@@ -173,8 +173,8 @@ pub fn base_layout(
     domain: &'static str,
     title: &'static str,
     description: &'static str,
-    body: PreEscaped<String>,
     styles: &'static str,
+    body: PreEscaped<String>,
 ) -> PreEscaped<String> {
     html! {
         (DOCTYPE)
@@ -362,9 +362,9 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
     let body = base_layout(
         "getresidence.org",
         "Get Legal Residency in Dubai",
+        STYLES_LOCAL,
         "Get Legal Residency in Dubai. Legally pay zero Taxes, or close to it!",
         body,
-        STYLES_LOCAL,
     );
 
     Response::from_html(body.into_string())
