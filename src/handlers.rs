@@ -41,6 +41,7 @@ h1 {
 	font-weight: 600;
 	font-style: normal;
 	text-wrap: balance;
+	border-top: 2px solid #000;
 }
 h2 {
 	font-weight: 700;
