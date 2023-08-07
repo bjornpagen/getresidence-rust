@@ -101,7 +101,7 @@ section {
 	column-gap: calc(var(--row-height) / 2);
 	row-gap: var(--row-height);
 }
-section > * {
+section * {
 	grid-column: 1 / span 4;
 }
 @media (min-width: 528px) {
@@ -168,9 +168,14 @@ header {
 }
 "#;
 
+fn emoji_to_favicon(emoji: &str) -> String {
+    format!("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>{}</text></svg>", emoji)
+}
+
 // base_layout is the base HTML template we will use for all responses.
 pub fn base_layout(
     domain: &'static str,
+    icon: &'static str,
     title: &'static str,
     description: &'static str,
     styles: &'static str,
@@ -183,6 +188,7 @@ pub fn base_layout(
             head {
                 title { (PreEscaped(title)) }
                 meta name="description" content=(PreEscaped(description)) {}
+                link rel="icon" href=(PreEscaped(emoji_to_favicon(icon))) {}
                 meta property="og:locale" content="en_US" {}
                 meta property="og:title" content=(PreEscaped(title)) {}
                 meta property="og:description" content=(PreEscaped(description)) {}
@@ -202,6 +208,7 @@ pub fn base_layout(
                 noscript {
                     link rel="stylesheet" href="https://use.typekit.net/gnn8txw.css" {}
                 }
+                script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.4/htmx.min.js" integrity="sha512-ZM2vxgVBxhBI5Etj/c/qcJV+upate3VzbVQOQRCx1YGuyEX9dYdMh8pRUot4xIwtAay6QwRQC/FdXRjSWIEHrg==" crossorigin="anonymous" referrerpolicy="no-referrer" {}
             }
             body {
                 header {
@@ -356,7 +363,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
         }
         section #form {
             h2 { "Please fill out the following form to get started." }
-            form #submit method="POST" action="/api/dubai/onboarding" {
+            form method="POST" action="/api/dubai/onboarding" {
                 label for="name" { "Name" }
                 input type="text" name="name" id="name" required="required" {}
                 label for="email" { "Email" }
@@ -365,9 +372,9 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
                 input type="tel" name="phone" id="phone" required="required" {}
                 label for="country" { "Country" }
                 input type="text" name="country" id="country" required="required" {}
-            }
-            button .btn1 type="submit" form="submit" {
-                span { "Submit." }
+                button .btn1 type="submit" {
+                    span { "Submit." }
+                }
             }
         }
     };
@@ -383,6 +390,7 @@ pub async fn dubai_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Resp
 
     let body = base_layout(
         "getresidence.org",
+        "🇦🇪",
         "Get Legal Residency in Dubai",
         "Get Legal Residency in Dubai. Legally pay zero Taxes, or close to it!",
         STYLES_LOCAL,
@@ -409,6 +417,7 @@ pub async fn privacy_handler(_req: Request, _ctx: RouteContext<()>) -> Result<Re
 
     let body = base_layout(
 		"getresidence.org",
+		"🔒",
 		"Privacy Policy",
 		"Your privacy is important to us. It is getresidence.org's policy to respect your privacy regarding any information we may collect from you across our website, https://getresidence.org, and other sites we own and operate.",
 		"",
