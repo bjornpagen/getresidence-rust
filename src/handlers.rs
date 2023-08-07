@@ -200,7 +200,7 @@ pub fn base_layout(
             }
             body {
                 header {
-                    p { (PreEscaped(domain)) }
+                    a href="/" { (PreEscaped(domain)) }
                 }
                 (body)
                 footer {
@@ -397,23 +397,18 @@ pub async fn dubai_onboarding_handler(_req: Request, _ctx: RouteContext<()>) -> 
 }
 
 pub async fn redirect_dubai(req: Request, _: RouteContext<()>) -> Result<Response> {
-    let baseurl = req
-        .headers()
-        .get("host")
-        .unwrap()
-        .to_owned()
-        .expect("get host header");
+    let baseurl = req.headers().get("host")?.ok_or("get baseurl")?;
+    let http_whitelist = vec!["localhost:8787", "127.0.0.1:8787"];
 
     // if localhost, http, otherwise, https
-    let proto = if baseurl.eq("localhost:8787") {
+    let proto = if http_whitelist.contains(&baseurl.as_str()) {
         "http"
     } else {
         "https"
     };
 
     let url_str = format!("{}://{}/{}", proto, baseurl, "dubai");
-
-    let url: Url = Url::parse(&url_str).unwrap();
+    let url = Url::parse(&url_str).unwrap();
 
     Response::redirect_with_status(url, StatusCode::FOUND.as_u16())
 }
