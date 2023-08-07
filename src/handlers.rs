@@ -209,7 +209,7 @@ pub fn base_layout(
                 }
                 (body)
                 footer {
-                    a href="/privacy" { "privacy policy" }
+                    a href="/privacy" { "Privacy Policy" }
                 }
             }
         }
