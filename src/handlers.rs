@@ -170,10 +170,6 @@ pub fn base_layout(
                 title { (PreEscaped(title)) }
                 meta name="description" content=(PreEscaped(description)) {}
                 meta name="viewport" content="width=device-width, initial-scale=1" {}
-                link rel="preload" href="https://use.typekit.net/gnn8txw.css" as="style" onload="this.onload=null;this.rel='stylesheet'" {}
-                noscript {
-                    link rel="stylesheet" href="https://use.typekit.net/gnn8txw.css" {}
-                }
                 style #reset {
                     (PreEscaped(STYLE_RESET))
                 }
@@ -182,6 +178,10 @@ pub fn base_layout(
                 }
                 style #local {
                     (PreEscaped(styles))
+                }
+                link rel="preload" href="https://use.typekit.net/gnn8txw.css" as="style" onload="this.onload=null;this.rel='stylesheet'" {}
+                noscript {
+                    link rel="stylesheet" href="https://use.typekit.net/gnn8txw.css" {}
                 }
             }
             body {
