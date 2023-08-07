@@ -371,7 +371,7 @@ pub async fn dubai_onboarding_handler(_req: Request, _ctx: RouteContext<()>) -> 
                 input type="text" name="country" id="country" required="required" {}
             }
             button .btn1 type="submit" form="submit" {
-                span { "Submit" }
+                span { "Submit." }
             }
         }
     };
