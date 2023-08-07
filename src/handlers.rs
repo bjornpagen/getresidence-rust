@@ -152,6 +152,19 @@ form > *:last-child {
 		margin-bottom: calc(var(--row-height) * 1.5);
 	}
 }
+header {
+	display: none;
+}
+@media (min-width: 840px) {
+	header {
+		display: block;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+		position: fixed;
+		bottom: 24px;
+		left: 24px;  
+	}
+}
 "#;
 
 // base_layout is the base HTML template we will use for all responses.
