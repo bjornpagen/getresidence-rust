@@ -162,8 +162,8 @@ header {
 		writing-mode: vertical-rl;
 		transform: rotate(180deg);
 		position: fixed;
-		bottom: 24px;
-		left: 24px;  
+		bottom: calc(var(--row-height) * 2);
+		left: var(--row-height);
 	}
 }
 "#;
