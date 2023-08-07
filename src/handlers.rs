@@ -68,12 +68,6 @@ h2 {
 		grid-column: 2 / span 2;
 	}
 }
-ol > li {
-	display: grid;
-	grid-template-columns: 1fr 1fr 1fr 1fr;
-	column-gap: calc(var(--row-height) / 2);
-	row-gap: var(--row-height);
-}
 dl {
 	display: grid;
 	grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -87,12 +81,19 @@ dl > dt {
 dl > dd {
 	grid-column: 2 / span 3;
 }
+ol > li {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr 1fr;
+	column-gap: calc(var(--row-height) / 2);
+	row-gap: var(--row-height);
+}
 li {
 	counter-increment: my-counter;
 }
 li::before {
 	content: counter(my-counter) ". ";
 	grid-column: 1;
+	margin-left: auto;
 }
 section {
 	display: grid;
