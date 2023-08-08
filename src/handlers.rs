@@ -11,11 +11,17 @@ const STYLE_SYSTEM: &'static str = r#"
 	--font-display: "neue-haas-grotesk-display", "SF Pro Display", system-ui, sans-serif, var(--font-emoji);
 	--row-height: 24px;
 	--max-width: calc(var(--row-height) * 28);
-}
-body {
+
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 
+	scroll-behavior: smooth;
+
+	font-size: 18px;
+	line-height: var(--row-height);
+	font-family: var(--font-text);
+}
+body {
 	padding-top: var(--row-height);
 	padding-bottom: var(--row-height);
 	padding-left: calc(var(--row-height) / 2);
@@ -28,11 +34,6 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: calc(var(--row-height) * 2);
-
-	font-size: 18px;
-	line-height: var(--row-height);
-	font-family: var(--font-text);
-	font-weight: 400;
 }
 h1 {
 	font-size: 42px;
@@ -210,7 +211,7 @@ pub fn base_layout(
                 }
                 script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.4/htmx.min.js" integrity="sha512-ZM2vxgVBxhBI5Etj/c/qcJV+upate3VzbVQOQRCx1YGuyEX9dYdMh8pRUot4xIwtAay6QwRQC/FdXRjSWIEHrg==" crossorigin="anonymous" referrerpolicy="no-referrer" {}
             }
-            body {
+            body hx-boost="true" {
                 header {
                     a href="/" { (PreEscaped(domain)) }
                 }
