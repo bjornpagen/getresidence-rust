@@ -143,7 +143,6 @@ small {
 	line-height: 14px;
 	margin-top: calc(var(--row-height) * -1);
 	font-size: 14px;
-	grid-column: 1 / span 3;
 }
 header {
 	display: none;

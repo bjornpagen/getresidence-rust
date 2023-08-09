@@ -3,14 +3,14 @@ use maud::{html, Markup};
 pub fn main() -> Markup {
     html! {
         section #hero {
-            h1 {"Get Legal Residency in Dubai." }
+            h1 {"Get Legal Residency in Dubai" }
             img src="https://imagedelivery.net/DYW9P4DJWiLboxGcOOuHaQ/fecc28ed-93fc-4498-f20b-364d27290100/public" alt="Dubai" {}
             p { "Legally pay zero Taxes, or close to it!" }
             p { "Get legal residency and a corporation..." }
             p { "In one of the only zero tax countries in the world!" }
             p { "Just experience Dubai, and leave with your legal residency card and a Dubai corporation." }
             a .btn1 href="#onboarding" {
-                span { "Register Now." }
+                span { "Register Now" }
             }
         }
         section #perks {
@@ -30,7 +30,7 @@ pub fn main() -> Markup {
                 dd { "We will drive you to all the necessary appointments and show you exactly what you need to do." }
             }
             a .btn1 href="#onboarding" {
-                span { "Register Now." }
+                span { "Register Now" }
             }
         }
         section #info {
@@ -61,7 +61,7 @@ pub fn main() -> Markup {
             }
             p { "You will actually leave Dubai with your residency card and your fully-formed Free Zone, zero-tax corporation!" }
             a .btn1 href="#onboarding" {
-                span { "Register Now." }
+                span { "Register Now" }
             }
         }
         section #how-it-works {
@@ -90,7 +90,7 @@ pub fn main() -> Markup {
                 }
             }
             a .btn1 href="#onboarding" {
-                span { "Register Now." }
+                span { "Register Now" }
             }
         }
         section #faq {
@@ -118,7 +118,7 @@ pub fn main() -> Markup {
                 dd { "No problem. If you have to cancel your November trip you can simply reschedule your trip for a later date, go to Dubai then, and we'll support you over the phone (instead of in-person) and coordinate with the attorneys remotely. Things will be slightly less convenient but we'll still make it work." }
             }
             a .btn1 href="#onboarding" {
-                span { "Register Now." }
+                span { "Register Now" }
             }
         }
     }
@@ -132,7 +132,7 @@ pub fn onboarding(name: &str, email: &str, phone: &str) -> Markup {
             (entry("email", "", EntryState::Init, None))
             (entry("phone", "", EntryState::Init, None))
             button .btn1 {
-                span { "Submit." }
+                span { "Submit" }
             }
         }
     }

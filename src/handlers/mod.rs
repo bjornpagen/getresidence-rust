@@ -139,7 +139,7 @@ pub async fn put_dubai_name(mut req: Request, _ctx: RouteContext<()>) -> Result<
             "name",
             &value,
             dubai::EntryState::Valid,
-            Some(format!("Your name has been saved: {}", value)),
+            Some(format!("✅ name has been saved—{}", value)),
         )
         .into_string(),
     )
@@ -153,7 +153,7 @@ pub async fn put_dubai_email(mut req: Request, _ctx: RouteContext<()>) -> Result
             &value,
             dubai::EntryState::Invalid,
             Some(format!(
-                "Your email is already associated with an account: {}",
+                "❌ email already associated with an account—{}",
                 value
             )),
         )
@@ -168,7 +168,7 @@ pub async fn put_dubai_phone(mut req: Request, _ctx: RouteContext<()>) -> Result
             "phone",
             &value,
             dubai::EntryState::Valid,
-            Some(format!("Your phone number has been saved: {}", value)),
+            Some(format!("✅ phone number has been saved—{}", value)),
         )
         .into_string(),
     )
