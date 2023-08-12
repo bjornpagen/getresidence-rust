@@ -213,8 +213,8 @@ type Email = EmailAddress;
 #[derive(Serialize, Deserialize)]
 struct Row {
     id: u64,
-    name: Name,
-    email: Email,
+    name: Option<Name>,
+    email: Option<Email>,
 }
 
 struct Database {
@@ -270,7 +270,7 @@ impl Database {
     async fn create_session(&self) -> Result<u64> {
         let query = self
             .d1
-            .prepare("INSERT INTO sessions (name, email) VALUES ('', '') RETURNING id;");
+            .prepare("INSERT INTO sessions (name, email) VALUES (NULL, NULL) RETURNING id;");
         let id = query
             .first::<u64>(Some("id"))
             .await?
@@ -319,30 +319,37 @@ pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Respon
     let branca_key_base64 = ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string();
     let auth = Auth::from_base64(&branca_key_base64)?;
 
-    let (main, headers) = if let Ok(session) = get_session_value(&mut req) {
+    let (id, headers) = if let Ok(session) = get_session_value(&mut req) {
         let id = auth.get_id(&session)?;
-        let row = db.get_row(id).await?;
-        let main = html! {
-            (dubai::main())
-            (dubai::onboarding(row.name.as_ref(),"",""))
-        };
-
         let headers = default_headers(Some(&nonce));
-        (main, headers)
+        (id, headers)
     } else {
         let id = db.create_session().await?;
         let token = auth.mint_token(id)?;
-        let main = html! {
-            (dubai::main())
-            (dubai::onboarding("","",""))
-        };
 
         let mut headers = default_headers(Some(&nonce));
         headers.append(
             "Set-Cookie",
             &format!("session={}; HttpOnly; SameSite", token),
         )?;
-        (main, headers)
+        (id, headers)
+    };
+
+    let row = db.get_row(id).await?;
+    let (name, email, phone) = (
+        match &row.name {
+            Some(name) => name.as_ref(),
+            None => "",
+        },
+        match &row.email {
+            Some(email) => email.as_str(),
+            None => "",
+        },
+        "",
+    );
+    let main = html! {
+        (dubai::main())
+        (dubai::onboarding(name, email, phone))
     };
 
     let markup = base_layout(
