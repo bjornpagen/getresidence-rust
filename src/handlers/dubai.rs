@@ -154,7 +154,7 @@ pub fn entry(name: &str, value: &str, state: EntryState, small: Option<String>) 
     html! {
         #entry .(class) {
             label for=(name) { (name) }
-            input #name type="text" name=(name) required="required" value=(value)
+            input #(name) type="text" name=(name) required="required" value=(value)
                 hx-put=(format!("/dubai/{}", name)) hx-swap="outerHTML" hx-sync="input:queue" hx-target="closest #entry" {}
             @if let Some(small) = small {
                 small { (small) }
