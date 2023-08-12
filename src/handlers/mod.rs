@@ -270,7 +270,7 @@ impl Database {
     async fn create_session(&self) -> Result<u64> {
         let query = self
             .d1
-            .prepare("INSERT INTO sessions (name, email) VALUES (?, ?) RETURNING id;");
+            .prepare("INSERT INTO sessions (name, email) VALUES ('', '') RETURNING id;");
         let id = query
             .first::<u64>(Some("id"))
             .await?
