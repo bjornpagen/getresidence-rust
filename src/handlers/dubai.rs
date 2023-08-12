@@ -128,9 +128,9 @@ pub fn onboarding(name: &str, email: &str, phone: &str) -> Markup {
     html! {
         section #onboarding {
             h2 { "Please fill out the following form to get started." }
-            (entry("name", "", EntryState::Init, None))
-            (entry("email", "", EntryState::Init, None))
-            (entry("phone", "", EntryState::Init, None))
+            (entry("name", name, EntryState::Init, None))
+            (entry("email", email, EntryState::Init, None))
+            (entry("phone", phone, EntryState::Init, None))
             button .btn1 {
                 span { "Submit" }
             }

@@ -1,20 +1,53 @@
+use base64;
+use branca::Branca;
 use http::StatusCode;
 use maud::{html, PreEscaped, DOCTYPE};
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::JsValue;
 use worker::*;
 
 mod dubai;
 mod styles;
 
+macro_rules! ensure {
+    ($expr:expr, $msg:expr) => {
+        if !$expr {
+            return Err($msg.into());
+        }
+    };
+}
+
+fn default_headers(nonce: Option<&str>) -> Headers {
+    let mut headers = Headers::new();
+    let mut csp = "default-src 'none'; img-src data: imagedelivery.net; font-src use.typekit.net; connect-src 'self'".to_owned();
+    if let Some(nonce) = nonce {
+        csp.push_str(&format!(
+            "; script-src 'nonce-{0}' 'strict-dynamic'; style-src 'nonce-{0}'",
+            nonce
+        ));
+    }
+    headers
+        .set("Content-Type", "text/html; charset=utf-8")
+        .unwrap();
+    headers.set("Content-Security-Policy", &csp).unwrap();
+    headers.set("Referrer-Policy", "no-referrer").unwrap();
+    headers.set("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), gamepad=(), geolocation=(), gyroscope=(), hid=(), identity-credentials-get=(), idle-detection=(), local-fonts=(), magnetometer=(), microphone=(), midi=(), otp-credentials=(), payment=(), picture-in-picture=(), publickey-credentials-create=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), speaker-selection=(), storage-access=(), usb=(), web-share=(), xr-spatial-tracking=()").unwrap();
+    headers.set("X-Frame-Options", "DENY").unwrap();
+    headers
+}
+
 fn emoji_to_favicon(emoji: &str) -> String {
     format!("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>{}</text></svg>", emoji)
 }
 
-fn field(data: FormData, field: &str) -> Result<String> {
-    let name_entry = data.get(field).ok_or("field does not exist")?;
+fn get_field(data: FormData, field: &str) -> Result<String> {
+    let name_entry = data
+        .get(field)
+        .ok_or(format!("form field does not exist: {}", field))?;
 
     match name_entry {
         FormEntry::Field(n) => Ok(n),
-        _ => Err("expected a field".into()),
+        _ => Err("expected a form field".into()),
     }
 }
 
@@ -25,6 +58,7 @@ pub fn base_layout(
     title: &'static str,
     description: &'static str,
     body: PreEscaped<String>,
+    nonce: &str,
 ) -> PreEscaped<String> {
     html! {
         (DOCTYPE)
@@ -40,17 +74,31 @@ pub fn base_layout(
                 // TODO: meta property="og:image" content="https://example.com/image.jpg" {}
                 // TODO: meta property="og:image:alt" content="A description of what is in the image (not a caption)." {}
                 meta name="viewport" content="width=device-width, initial-scale=1" {}
-                style #reset {
+                style #reset nonce=(nonce) {
                     (PreEscaped(styles::RESET))
                 }
-                style #global {
+                style #global nonce=(nonce) {
                     (PreEscaped(styles::SYSTEM))
                 }
-                link rel="preload" href="https://use.typekit.net/gnn8txw.css" as="style" onload="this.onload=null;this.rel='stylesheet'" {}
-                noscript {
-                    link rel="stylesheet" href="https://use.typekit.net/gnn8txw.css" {}
+                link #fonts rel="preload" href="https://use.typekit.net/gnn8txw.css" as="style" nonce=(nonce) {}
+                script nonce=(nonce) {
+                    (PreEscaped(r#"
+						const link = document.querySelector('#fonts');
+						link.onload = () => {
+							link.onload = null;
+							link.rel = 'stylesheet';
+						};
+					"#))
                 }
-                script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.4/htmx.min.js" integrity="sha512-ZM2vxgVBxhBI5Etj/c/qcJV+upate3VzbVQOQRCx1YGuyEX9dYdMh8pRUot4xIwtAay6QwRQC/FdXRjSWIEHrg==" crossorigin="anonymous" referrerpolicy="no-referrer" {}
+                noscript {
+                    link rel="stylesheet" href="https://use.typekit.net/gnn8txw.css" nonce=(nonce) {}
+                }
+                script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.4/htmx.min.js" integrity="sha512-ZM2vxgVBxhBI5Etj/c/qcJV+upate3VzbVQOQRCx1YGuyEX9dYdMh8pRUot4xIwtAay6QwRQC/FdXRjSWIEHrg==" crossorigin="anonymous" referrerpolicy="no-referrer" nonce=(nonce) {}
+                script nonce=(nonce) {
+                    (PreEscaped(r#"
+					htmx.config.includeIndicatorStyles = false;
+					"#))
+                }
             }
             body hx-boost="true" {
                 header {
@@ -64,7 +112,7 @@ pub fn base_layout(
                 }
                 noscript {
                     #noscript {
-                        h1 { "You must enable Javascript in order to use this site." }
+                        h1 { "You must enable Javascript in order to use this site" }
                     }
                 }
             }
@@ -73,7 +121,7 @@ pub fn base_layout(
 }
 
 pub async fn get_root(req: Request, _: RouteContext<()>) -> Result<Response> {
-    let baseurl = req.headers().get("host")?.ok_or("get baseurl")?;
+    let baseurl = req.headers().get("host")?.ok_or("host header not set")?;
     let http_whitelist = vec!["localhost:8787", "127.0.0.1:8787"];
 
     // if localhost, http, otherwise, https
@@ -84,12 +132,21 @@ pub async fn get_root(req: Request, _: RouteContext<()>) -> Result<Response> {
     };
 
     let url_str = format!("{}://{}/{}", proto, baseurl, "dubai");
-    let url = Url::parse(&url_str).unwrap();
+    let url = Url::parse(&url_str).map_err(|e| format!("parse url: {}", e))?;
 
     Response::redirect_with_status(url, StatusCode::FOUND.as_u16())
 }
 
+fn generate_nonce() -> Result<String> {
+    let mut buf = [0u8; 32];
+    getrandom::getrandom(&mut buf).map_err(|e| format!("getrandom: {}", e))?;
+    let nonce = base64::encode(&buf);
+    Ok(nonce)
+}
+
 pub async fn get_privacy(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
+    let nonce = generate_nonce()?;
+
     let body = html! {
         section #privacy {
             h1 { "Privacy Policy" }
@@ -104,21 +161,136 @@ pub async fn get_privacy(_req: Request, _ctx: RouteContext<()>) -> Result<Respon
         }
     };
 
-    let body = base_layout(
+    let markup = base_layout(
         "getresidence.org",
         "🔒",
         "Privacy Policy",
         "Your privacy is important to us. It is getresidence.org's policy to respect your privacy.",
         body,
+        &nonce,
     );
 
-    Response::from_html(body.into_string())
+    let headers = default_headers(Some(&nonce));
+    Ok(Response::from_html(markup.into_string())?.with_headers(headers))
 }
 
-pub async fn get_dubai(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
-    let main = html! {
-        (dubai::main())
-        (dubai::onboarding("pillage","",""))
+#[derive(Serialize, Deserialize)]
+struct Row {
+    id: u64,
+    name: String,
+}
+
+struct Database {
+    d1: D1Database,
+}
+
+impl Database {
+    fn new(d1: D1Database) -> Self {
+        Self { d1 }
+    }
+
+    async fn get_row(&self, id: u64) -> Result<Row> {
+        let statement = self.d1.prepare("SELECT * FROM sessions WHERE id = $1;");
+        let query = statement.bind(&vec![JsValue::from_str(&id.to_string())])?;
+        let row = query
+            .first::<Row>(None)
+            .await?
+            .ok_or("get onboarding fields failed")?;
+
+        Ok(row)
+    }
+
+    async fn set_name(&self, id: u64, name: &Name<'_>) -> Result<()> {
+        let statement = self
+            .d1
+            .prepare("UPDATE sessions SET name = ? WHERE id = ?;");
+        let query = statement.bind(&vec![
+            JsValue::from_str(name.as_str()),
+            JsValue::from_str(&id.to_string()),
+        ])?;
+        let res = query.run().await?.results::<()>().err();
+        if let Some(e) = res {
+            return Err(format!("set name failed: {}", e).into());
+        }
+        Ok(())
+    }
+
+    async fn create_session(&self) -> Result<u64> {
+        let query = self
+            .d1
+            .prepare("INSERT INTO sessions (name) VALUES ('') RETURNING id;");
+        let id = query
+            .first::<u64>(Some("id"))
+            .await?
+            .ok_or("create session failed")?;
+        Ok(id)
+    }
+}
+
+struct Auth {
+    branca_key: Vec<u8>,
+}
+
+impl Auth {
+    pub fn from_base64(key: &str) -> Result<Self> {
+        let branca_key = base64::decode(key).map_err(|e| format!("base64 decode: {}", e))?;
+        ensure!(branca_key.len() == 32, "branca key must be 32 bytes");
+
+        Ok(Self { branca_key })
+    }
+
+    pub fn mint_token(&self, id: u64) -> Result<String> {
+        let mut token = Branca::new(&self.branca_key).map_err(|e| format!("branca new: {}", e))?;
+        let seconds = Date::now().as_millis() / 1000;
+        token.set_timestamp(seconds as u32);
+        let plaintext = id.to_le_bytes().to_vec();
+        let token = token
+            .encode(&plaintext)
+            .map_err(|e| format!("branca encode: {}", e))?;
+        Ok(token)
+    }
+
+    pub fn get_id(&self, session_token: &str) -> Result<u64> {
+        let token = Branca::new(&self.branca_key).map_err(|e| format!("branca new: {}", e))?;
+        let plaintext = token
+            .decode(session_token, 0)
+            .map_err(|e| format!("branca decode: {}", e))?;
+        let id = u64::from_le_bytes(plaintext[..8].try_into().unwrap());
+        Ok(id)
+    }
+}
+
+pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let nonce = generate_nonce()?;
+
+    let db = Database::new(ctx.env.d1("DB")?);
+    let branca_key_base64 = ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string();
+    let auth = Auth::from_base64(&branca_key_base64)?;
+
+    let (main, headers) = if let Ok(session) = get_session_value(&mut req) {
+        let id = auth.get_id(&session)?;
+        let row = db.get_row(id).await?;
+        let main = html! {
+            (dubai::main())
+            (dubai::onboarding(&row.name,"",""))
+        };
+
+        let headers = default_headers(Some(&nonce));
+        (main, headers)
+    } else {
+        let id = db.create_session().await?;
+        let token = auth.mint_token(id)?;
+        let main = html! {
+            (dubai::main())
+            (dubai::onboarding("","",""))
+        };
+
+        let mut headers = default_headers(Some(&nonce));
+        headers.append(
+            "Set-Cookie",
+            &format!("session={}; HttpOnly; SameSite", token),
+        )?;
+        (main, headers)
     };
 
     let markup = base_layout(
@@ -127,26 +299,87 @@ pub async fn get_dubai(_req: Request, _ctx: RouteContext<()>) -> Result<Response
         "Get Legal Residency in Dubai",
         "Get Legal Residency in Dubai. Legally pay zero Taxes, or close to it!",
         main,
+        &nonce,
     );
 
-    Response::from_html(markup.into_string())
+    Ok(Response::from_html(&markup.into_string())?.with_headers(headers))
 }
 
-pub async fn put_dubai_name(mut req: Request, _ctx: RouteContext<()>) -> Result<Response> {
-    let value = field(req.form_data().await?, "name")?;
-    Response::from_html(
-        dubai::entry(
+fn get_session_value(req: &mut Request) -> Result<String> {
+    let cookie = req.headers().get("Cookie")?.ok_or("cookie not set")?;
+    let cookie = cookie.split(";").collect::<Vec<&str>>();
+    let cookie = cookie
+        .iter()
+        .find(|x| x.contains("session="))
+        .ok_or("session not found")?;
+    let cookie = cookie.split("=").collect::<Vec<&str>>();
+    let cookie = cookie.get(1).ok_or("session not found")?;
+    let cookie = cookie.to_string();
+    Ok(cookie)
+}
+
+trait Validatable<T> {
+    fn validate(value: T) -> Result<Self>
+    where
+        Self: Sized;
+}
+
+struct Name<'a>(&'a str);
+
+impl<'a> Name<'a> {
+    fn as_str(&self) -> &'a str {
+        self.0
+    }
+}
+
+impl<'a> Validatable<&'a str> for Name<'a> {
+    fn validate(name: &'a str) -> Result<Self> {
+        ensure!(name.len() > 0, "name must not be empty");
+        ensure!(name.len() < 100, "name must be less than 100 characters");
+        for c in name.chars() {
+            ensure!(
+                c.is_alphanumeric() || c.is_whitespace(),
+                "name must not contain special characters"
+            );
+        }
+        Ok(Self(name))
+    }
+}
+
+pub async fn put_dubai_name(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let session = get_session_value(&mut req)?;
+    let auth = Auth::from_base64(&ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string())?;
+    let id = auth.get_id(&session)?;
+
+    let name = get_field(req.form_data().await?, "name")?;
+    let markup = match Name::validate(&name) {
+        Ok(validated) => {
+            let db = Database::new(ctx.env.d1("DB")?);
+            db.set_name(id, &validated).await?;
+            dubai::entry(
+                "name",
+                &validated.as_str(),
+                dubai::EntryState::Valid,
+                Some(format!("✅ name has been saved—{}", name.as_str())),
+            )
+        }
+        Err(e) => dubai::entry(
             "name",
-            &value,
-            dubai::EntryState::Valid,
-            Some(format!("✅ name has been saved—{}", value)),
-        )
-        .into_string(),
-    )
+            &name,
+            dubai::EntryState::Invalid,
+            Some(format!("❌ {}", e)),
+        ),
+    };
+
+    let headers = default_headers(None);
+    Ok(Response::from_html(&markup.into_string())?.with_headers(headers))
 }
 
-pub async fn put_dubai_email(mut req: Request, _ctx: RouteContext<()>) -> Result<Response> {
-    let value = field(req.form_data().await?, "email")?;
+pub async fn put_dubai_email(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let session = get_session_value(&mut req)?;
+    let d1 = ctx.env.d1("getresidence-org")?;
+
+    let value = get_field(req.form_data().await?, "email")?;
     Response::from_html(
         dubai::entry(
             "email",
@@ -161,8 +394,11 @@ pub async fn put_dubai_email(mut req: Request, _ctx: RouteContext<()>) -> Result
     )
 }
 
-pub async fn put_dubai_phone(mut req: Request, _ctx: RouteContext<()>) -> Result<Response> {
-    let value = field(req.form_data().await?, "phone")?;
+pub async fn put_dubai_phone(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let session = get_session_value(&mut req)?;
+    let d1 = ctx.env.d1("getresidence-org")?;
+
+    let value = get_field(req.form_data().await?, "phone")?;
     Response::from_html(
         dubai::entry(
             "phone",
@@ -173,19 +409,3 @@ pub async fn put_dubai_phone(mut req: Request, _ctx: RouteContext<()>) -> Result
         .into_string(),
     )
 }
-
-// pub async fn dubai_onboarding_handler(
-//     mut req: Request,
-//     _ctx: RouteContext<()>,
-// ) -> Result<Response> {
-//     let payload = html! {
-//         p { (req.headers().values().join(" ")) }
-//     };
-
-//     let cookie = format!("name={};SameSite=strict;HttpOnly;Secure", "pig");
-
-//     let mut headers = Headers::new();
-//     headers.append("Set-Cookie", &cookie)?;
-
-//     Ok(Response::from_html(payload.into_string())?.with_headers(headers))
-// }

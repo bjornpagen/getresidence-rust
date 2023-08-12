@@ -4,3 +4,8 @@ compatibility_date = "2023-07-24"
 
 [build]
 command = "cargo install -q worker-build && worker-build --release"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "getresidence-org"
+database_id = "ce86c95f-95ca-4b10-9ec4-60d4f5ab2dee"

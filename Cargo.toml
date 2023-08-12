@@ -11,9 +11,13 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.0.18", features = ["d1"] }
-http = "0.2.9"
+serde = { version = "*", features = ["derive"] }
+worker = { version = "*", features = ["d1"] }
+http = "*"
 maud = "*"
+branca = "*"
+getrandom = { version = "*", features = ["js"] }
+base64 = "*"
 
 [profile.release]
 lto = true
