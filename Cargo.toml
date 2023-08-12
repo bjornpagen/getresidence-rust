@@ -18,6 +18,7 @@ maud = "*"
 branca = "*"
 getrandom = { version = "*", features = ["js"] }
 base64 = "*"
+email_address = "0.2.4"
 
 [profile.release]
 lto = true

@@ -1,5 +1,8 @@
+use std::{fmt::Display, str::FromStr};
+
 use base64;
 use branca::Branca;
+use email_address::EmailAddress;
 use http::StatusCode;
 use maud::{html, PreEscaped, DOCTYPE};
 use serde::{Deserialize, Serialize};
@@ -57,7 +60,7 @@ pub fn base_layout(
     icon: &'static str,
     title: &'static str,
     description: &'static str,
-    body: PreEscaped<String>,
+    main: PreEscaped<String>,
     nonce: &str,
 ) -> PreEscaped<String> {
     html! {
@@ -105,7 +108,7 @@ pub fn base_layout(
                     a href="/" { (PreEscaped(domain)) }
                 }
                 main {
-                    (body)
+                    (main)
                 }
                 footer {
                     a href="/privacy" { "Privacy Policy" }
@@ -147,7 +150,7 @@ fn generate_nonce() -> Result<String> {
 pub async fn get_privacy(_req: Request, _ctx: RouteContext<()>) -> Result<Response> {
     let nonce = generate_nonce()?;
 
-    let body = html! {
+    let main = html! {
         section #privacy {
             h1 { "Privacy Policy" }
             p { "Your privacy is important to us. It is getresidence.org's policy to respect your privacy regarding any information we may collect from you across our website, and other sites we own and operate." }
@@ -166,7 +169,7 @@ pub async fn get_privacy(_req: Request, _ctx: RouteContext<()>) -> Result<Respon
         "🔒",
         "Privacy Policy",
         "Your privacy is important to us. It is getresidence.org's policy to respect your privacy.",
-        body,
+        main,
         &nonce,
     );
 
@@ -175,9 +178,43 @@ pub async fn get_privacy(_req: Request, _ctx: RouteContext<()>) -> Result<Respon
 }
 
 #[derive(Serialize, Deserialize)]
+struct Name(String);
+
+impl FromStr for Name {
+    type Err = Error;
+
+    fn from_str(name: &str) -> Result<Self> {
+        ensure!(name.len() > 0, "name must not be empty");
+        ensure!(name.len() < 100, "name must be less than 100 characters");
+        for c in name.chars() {
+            ensure!(
+                c.is_alphanumeric() || c.is_whitespace(),
+                "name must not contain special characters"
+            );
+        }
+        Ok(Self(name.to_owned()))
+    }
+}
+
+impl Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+type Email = EmailAddress;
+
+#[derive(Serialize, Deserialize)]
 struct Row {
     id: u64,
-    name: String,
+    name: Name,
+    email: Email,
 }
 
 struct Database {
@@ -200,12 +237,12 @@ impl Database {
         Ok(row)
     }
 
-    async fn set_name(&self, id: u64, name: &Name<'_>) -> Result<()> {
+    async fn set_name(&self, id: u64, validated: &Name) -> Result<()> {
         let statement = self
             .d1
             .prepare("UPDATE sessions SET name = ? WHERE id = ?;");
         let query = statement.bind(&vec![
-            JsValue::from_str(name.as_str()),
+            JsValue::from_str(validated.as_ref()),
             JsValue::from_str(&id.to_string()),
         ])?;
         let res = query.run().await?.results::<()>().err();
@@ -215,10 +252,25 @@ impl Database {
         Ok(())
     }
 
+    async fn set_email(&self, id: u64, email: &Email) -> Result<()> {
+        let statement = self
+            .d1
+            .prepare("UPDATE sessions SET email = ? WHERE id = ?;");
+        let query = statement.bind(&vec![
+            JsValue::from_str(email.as_str()),
+            JsValue::from_str(&id.to_string()),
+        ])?;
+        let res = query.run().await?.results::<()>().err();
+        if let Some(e) = res {
+            return Err(format!("set email failed: {}", e).into());
+        }
+        Ok(())
+    }
+
     async fn create_session(&self) -> Result<u64> {
         let query = self
             .d1
-            .prepare("INSERT INTO sessions (name) VALUES ('') RETURNING id;");
+            .prepare("INSERT INTO sessions (name, email) VALUES (?, ?) RETURNING id;");
         let id = query
             .first::<u64>(Some("id"))
             .await?
@@ -272,7 +324,7 @@ pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Respon
         let row = db.get_row(id).await?;
         let main = html! {
             (dubai::main())
-            (dubai::onboarding(&row.name,"",""))
+            (dubai::onboarding(row.name.as_ref(),"",""))
         };
 
         let headers = default_headers(Some(&nonce));
@@ -318,47 +370,19 @@ fn get_session_value(req: &mut Request) -> Result<String> {
     Ok(cookie)
 }
 
-trait Validatable<T> {
-    fn validate(value: T) -> Result<Self>
-    where
-        Self: Sized;
-}
-
-struct Name<'a>(&'a str);
-
-impl<'a> Name<'a> {
-    fn as_str(&self) -> &'a str {
-        self.0
-    }
-}
-
-impl<'a> Validatable<&'a str> for Name<'a> {
-    fn validate(name: &'a str) -> Result<Self> {
-        ensure!(name.len() > 0, "name must not be empty");
-        ensure!(name.len() < 100, "name must be less than 100 characters");
-        for c in name.chars() {
-            ensure!(
-                c.is_alphanumeric() || c.is_whitespace(),
-                "name must not contain special characters"
-            );
-        }
-        Ok(Self(name))
-    }
-}
-
 pub async fn put_dubai_name(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let session = get_session_value(&mut req)?;
     let auth = Auth::from_base64(&ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string())?;
     let id = auth.get_id(&session)?;
 
     let name = get_field(req.form_data().await?, "name")?;
-    let markup = match Name::validate(&name) {
+    let markup = match Name::from_str(&name) {
         Ok(validated) => {
             let db = Database::new(ctx.env.d1("DB")?);
             db.set_name(id, &validated).await?;
             dubai::entry(
                 "name",
-                &validated.as_str(),
+                validated.as_ref(),
                 dubai::EntryState::Valid,
                 Some(format!("✅ name has been saved—{}", name.as_str())),
             )
@@ -377,21 +401,31 @@ pub async fn put_dubai_name(mut req: Request, ctx: RouteContext<()>) -> Result<R
 
 pub async fn put_dubai_email(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let session = get_session_value(&mut req)?;
-    let d1 = ctx.env.d1("getresidence-org")?;
+    let auth = Auth::from_base64(&ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string())?;
+    let id = auth.get_id(&session)?;
 
-    let value = get_field(req.form_data().await?, "email")?;
-    Response::from_html(
-        dubai::entry(
+    let email = get_field(req.form_data().await?, "email")?;
+    let markup = match Email::from_str(&email) {
+        Ok(validated) => {
+            let db = Database::new(ctx.env.d1("DB")?);
+            db.set_email(id, &validated).await?;
+            dubai::entry(
+                "email",
+                validated.as_ref(),
+                dubai::EntryState::Valid,
+                Some(format!("✅ email has been saved—{}", email.as_str())),
+            )
+        }
+        Err(e) => dubai::entry(
             "email",
-            &value,
+            &email,
             dubai::EntryState::Invalid,
-            Some(format!(
-                "❌ email already associated with an account—{}",
-                value
-            )),
-        )
-        .into_string(),
-    )
+            Some(format!("❌ {}", e)),
+        ),
+    };
+
+    let headers = default_headers(None);
+    Ok(Response::from_html(&markup.into_string())?.with_headers(headers))
 }
 
 pub async fn put_dubai_phone(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
