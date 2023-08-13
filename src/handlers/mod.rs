@@ -232,7 +232,15 @@ impl FromStr for Phone {
 
     fn from_str(phone: &str) -> Result<Self> {
         ensure!(phone.len() < 20, "phone must be less than 20 characters");
-        let res = phonenumber::parse(None, &phone).map_err(|_| "phone must be valid")?;
+        let res = phonenumber::parse(None, &phone);
+        let res = match res {
+            Ok(res) => res,
+            Err(_) => {
+                let res = phonenumber::parse(Some(phonenumber::country::US), &phone)
+                    .map_err(|_| "phone must be valid")?;
+                res
+            }
+        };
         let int = res
             .format()
             .mode(phonenumber::Mode::International)
