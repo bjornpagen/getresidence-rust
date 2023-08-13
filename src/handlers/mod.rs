@@ -231,7 +231,12 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
-        let res = phonenumber::parse(None, &phone).map_err(|_| "phone must be valid")?;
+        fn strip_non_numeric(s: &str) -> String {
+            s.chars().filter(|c| c.is_numeric()).collect()
+        }
+        let phone = strip_non_numeric(phone);
+        let phone = format!("+{}", phone);
+        let res = phonenumber::parse(None, &phone).map_err(|e| Error::from(e.to_string()))?;
         let int = res
             .format()
             .mode(phonenumber::Mode::International)
