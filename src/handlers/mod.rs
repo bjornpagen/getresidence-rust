@@ -242,6 +242,7 @@ impl FromStr for Phone {
             Err(_) => {
                 let res = phonenumber::parse(Some(phonenumber::country::US), &phone)
                     .map_err(|_| "phone must be valid")?;
+                ensure!(!res.is_valid(), "phone must be valid");
                 res
             }
         };
