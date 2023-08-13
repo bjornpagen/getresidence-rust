@@ -224,10 +224,47 @@ impl AsRef<str> for Email {
 }
 
 #[derive(Serialize, Deserialize)]
+struct Phone(String);
+
+impl FromStr for Phone {
+    type Err = Error;
+
+    fn from_str(phone: &str) -> Result<Self> {
+        fn strip_special_chars(phone: &str) -> String {
+            let mut stripped = String::new();
+            for c in phone.chars() {
+                if c.is_numeric() {
+                    stripped.push(c);
+                }
+            }
+            stripped
+        }
+
+        let phone = format!("+{}", strip_special_chars(phone));
+        ensure!(phone.len() < 20, "phone must be less than 20 characters");
+        let re = Regex::new(
+            r#"\+(9[976]\d|8[987530]\d|6[987]\d|5[90]\d|42\d|3[875]\d|
+			2[98654321]\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|
+			4[987654310]|3[9643210]|2[70]|7|1)\d{1,14}$"#,
+        )
+        .unwrap();
+        ensure!(re.is_match(&phone), "phone must be valid");
+        Ok(Self(phone.to_owned()))
+    }
+}
+
+impl AsRef<str> for Phone {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 struct Row {
     id: u64,
     name: Option<Name>,
     email: Option<Email>,
+    phone: Option<Phone>,
 }
 
 struct Database {
@@ -280,10 +317,25 @@ impl Database {
         Ok(())
     }
 
-    async fn create_session(&self) -> Result<u64> {
-        let query = self
+    async fn set_phone(&self, id: u64, phone: &Phone) -> Result<()> {
+        let statement = self
             .d1
-            .prepare("INSERT INTO sessions (name, email) VALUES (NULL, NULL) RETURNING id;");
+            .prepare("UPDATE sessions SET phone = ? WHERE id = ?;");
+        let query = statement.bind(&vec![
+            JsValue::from_str(phone.as_ref()),
+            JsValue::from_str(&id.to_string()),
+        ])?;
+        let res = query.run().await?.results::<()>().err();
+        if let Some(e) = res {
+            return Err(format!("set phone failed: {}", e).into());
+        }
+        Ok(())
+    }
+
+    async fn create_session(&self) -> Result<u64> {
+        let query = self.d1.prepare(
+            "INSERT INTO sessions (name, email, phone) VALUES (NULL, NULL, NULL) RETURNING id;",
+        );
         let id = query
             .first::<u64>(Some("id"))
             .await?
@@ -358,7 +410,10 @@ pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Respon
             Some(email) => email.as_ref(),
             None => "",
         },
-        "",
+        match &row.phone {
+            Some(phone) => phone.as_ref(),
+            None => "",
+        },
     );
     let main = html! {
         (dubai::main())
@@ -450,16 +505,29 @@ pub async fn put_dubai_email(mut req: Request, ctx: RouteContext<()>) -> Result<
 
 pub async fn put_dubai_phone(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let session = get_session_value(&mut req)?;
-    let d1 = ctx.env.d1("getresidence-org")?;
+    let auth = Auth::from_base64(&ctx.secret("BRANCA_PRIVATE_KEY_BASE64")?.to_string())?;
+    let id = auth.get_id(&session)?;
 
-    let value = get_field(req.form_data().await?, "phone")?;
-    Response::from_html(
-        dubai::entry(
+    let phone = get_field(req.form_data().await?, "phone")?;
+    let markup = match Phone::from_str(&phone) {
+        Ok(validated) => {
+            let db = Database::new(ctx.env.d1("DB")?);
+            db.set_phone(id, &validated).await?;
+            dubai::entry(
+                "phone",
+                validated.as_ref(),
+                dubai::EntryState::Valid,
+                Some(format!("✅ phone has been saved—{}", phone.as_str())),
+            )
+        }
+        Err(e) => dubai::entry(
             "phone",
-            &value,
-            dubai::EntryState::Valid,
-            Some(format!("✅ phone number has been saved—{}", value)),
-        )
-        .into_string(),
-    )
+            &phone,
+            dubai::EntryState::Invalid,
+            Some(format!("❌ {}", e)),
+        ),
+    };
+
+    let headers = default_headers(None);
+    Ok(Response::from_html(&markup.into_string())?.with_headers(headers))
 }
