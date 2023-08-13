@@ -18,7 +18,7 @@ maud = "*"
 branca = "*"
 getrandom = { version = "*", features = ["js"] }
 base64 = "*"
-email_address = "0.2.4"
+validator = { version = "*", features = ["derive"] }
 
 [profile.release]
 lto = true

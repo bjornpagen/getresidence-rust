@@ -2,10 +2,10 @@ use std::{fmt::Display, str::FromStr};
 
 use base64;
 use branca::Branca;
-use email_address::EmailAddress;
 use http::StatusCode;
 use maud::{html, PreEscaped, DOCTYPE};
 use serde::{Deserialize, Serialize};
+use validator::{Validate, ValidationError};
 use wasm_bindgen::JsValue;
 use worker::*;
 
@@ -196,19 +196,34 @@ impl FromStr for Name {
     }
 }
 
-impl Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 impl AsRef<str> for Name {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-type Email = EmailAddress;
+#[derive(Serialize, Validate, Deserialize)]
+struct Email {
+    #[validate(email, length(max = 100))]
+    val: String,
+}
+
+impl FromStr for Email {
+    type Err = Error;
+
+    fn from_str(email: &str) -> Result<Self> {
+        let email = email.to_owned();
+        let validated = Self { val: email };
+        validated.validate().map_err(|e| format!("{}", e))?;
+        Ok(validated)
+    }
+}
+
+impl AsRef<str> for Email {
+    fn as_ref(&self) -> &str {
+        &self.val
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Row {
@@ -257,7 +272,7 @@ impl Database {
             .d1
             .prepare("UPDATE sessions SET email = ? WHERE id = ?;");
         let query = statement.bind(&vec![
-            JsValue::from_str(email.as_str()),
+            JsValue::from_str(email.as_ref()),
             JsValue::from_str(&id.to_string()),
         ])?;
         let res = query.run().await?.results::<()>().err();
@@ -342,7 +357,7 @@ pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Respon
             None => "",
         },
         match &row.email {
-            Some(email) => email.as_str(),
+            Some(email) => email.as_ref(),
             None => "",
         },
         "",
