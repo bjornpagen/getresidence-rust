@@ -4,6 +4,7 @@ use base64;
 use branca::Branca;
 use http::StatusCode;
 use maud::{html, PreEscaped, DOCTYPE};
+use phonenumber;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
@@ -242,13 +243,8 @@ impl FromStr for Phone {
 
         let phone = format!("+{}", strip_special_chars(phone));
         ensure!(phone.len() < 20, "phone must be less than 20 characters");
-        let re = Regex::new(
-            r#"\+(9[976]\d|8[987530]\d|6[987]\d|5[90]\d|42\d|3[875]\d|
-			2[98654321]\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|
-			4[987654310]|3[9643210]|2[70]|7|1)\d{1,14}$"#,
-        )
-        .unwrap();
-        ensure!(re.is_match(&phone), "phone must be valid");
+        let valid = phonenumber::is_viable(&phone);
+        ensure!(valid, "phone must be valid");
         Ok(Self(phone.to_owned()))
     }
 }

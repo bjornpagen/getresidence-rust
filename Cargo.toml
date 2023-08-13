@@ -19,6 +19,7 @@ branca = "*"
 getrandom = { version = "*", features = ["js"] }
 base64 = "*"
 regex = "*"
+phonenumber = "0.3.2"
 
 [profile.release]
 lto = true
