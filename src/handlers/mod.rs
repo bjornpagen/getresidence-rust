@@ -231,6 +231,10 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
+        fn strip_non_numeric(s: &str) -> String {
+            s.chars().filter(|c| c.is_numeric()).collect()
+        }
+        let phone = strip_non_numeric(phone);
         ensure!(phone.len() < 20, "phone must be less than 20 characters");
         let res = phonenumber::parse(None, &phone);
         let res = match res {
