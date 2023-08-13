@@ -231,21 +231,13 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
-        fn strip_special_chars(phone: &str) -> String {
-            let mut stripped = String::new();
-            for c in phone.chars() {
-                if c.is_numeric() {
-                    stripped.push(c);
-                }
-            }
-            stripped
-        }
-
-        let phone = format!("+{}", strip_special_chars(phone));
         ensure!(phone.len() < 20, "phone must be less than 20 characters");
-        let valid = phonenumber::is_viable(&phone);
-        ensure!(valid, "phone must be valid");
-        Ok(Self(phone.to_owned()))
+        let res = phonenumber::parse(None, &phone).map_err(|_| "phone must be valid")?;
+        let int = res
+            .format()
+            .mode(phonenumber::Mode::International)
+            .to_string();
+        Ok(Self(int))
     }
 }
 
