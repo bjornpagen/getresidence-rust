@@ -459,7 +459,7 @@ pub async fn put_dubai_name(mut req: Request, ctx: RouteContext<()>) -> Result<R
                 "name",
                 validated.as_ref(),
                 dubai::EntryState::Valid,
-                Some(format!("✅ name has been saved—{}", name.as_str())),
+                Some(format!("✅ name has been saved—{}", validated.as_ref())),
             )
         }
         Err(e) => dubai::entry(
@@ -488,7 +488,7 @@ pub async fn put_dubai_email(mut req: Request, ctx: RouteContext<()>) -> Result<
                 "email",
                 validated.as_ref(),
                 dubai::EntryState::Valid,
-                Some(format!("✅ email has been saved—{}", email.as_str())),
+                Some(format!("✅ email has been saved—{}", validated.as_ref())),
             )
         }
         Err(e) => dubai::entry(
@@ -517,7 +517,7 @@ pub async fn put_dubai_phone(mut req: Request, ctx: RouteContext<()>) -> Result<
                 "phone",
                 validated.as_ref(),
                 dubai::EntryState::Valid,
-                Some(format!("✅ phone has been saved—{}", phone.as_str())),
+                Some(format!("✅ phone has been saved—{}", validated.as_ref())),
             )
         }
         Err(e) => dubai::entry(
