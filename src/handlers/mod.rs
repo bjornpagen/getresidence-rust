@@ -231,21 +231,7 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
-        fn strip_non_numeric(s: &str) -> String {
-            s.chars().filter(|c| c.is_numeric()).collect()
-        }
-        let phone = strip_non_numeric(phone);
-        ensure!(phone.len() < 20, "phone must be less than 20 characters");
-        let res = phonenumber::parse(None, &phone);
-        let res = match res {
-            Ok(res) => res,
-            Err(_) => {
-                let res = phonenumber::parse(Some(phonenumber::country::US), &phone)
-                    .map_err(|_| "phone must be valid")?;
-                ensure!(!res.is_valid(), "phone must be valid");
-                res
-            }
-        };
+        let res = phonenumber::parse(None, &phone).map_err(|_| "phone must be valid")?;
         let int = res
             .format()
             .mode(phonenumber::Mode::International)
