@@ -231,6 +231,10 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
+        fn dashes_to_spaces(s: &str) -> String {
+            s.chars().map(|c| if c == '-' { ' ' } else { c }).collect()
+        }
+        let phone = dashes_to_spaces(phone);
         let res = phonenumber::parse(None, &phone).map_err(|e| Error::from(e.to_string()))?;
         let int = res
             .format()
