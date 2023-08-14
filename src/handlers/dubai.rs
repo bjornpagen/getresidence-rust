@@ -128,9 +128,9 @@ pub fn onboarding(name: &str, email: &str, phone: &str) -> Markup {
     html! {
         section #onboarding {
             h2 { "Please fill out the following form to get started." }
-            (entry("name", name, EntryState::Init, None))
-            (entry("email", email, EntryState::Init, None))
-            (entry("phone", phone, EntryState::Init, None))
+            (entry("name", name, EntrySchema::Text, EntryState::Init, None))
+            (entry("email", email, EntrySchema::Email, EntryState::Init, None))
+            (entry("phone", phone, EntrySchema::Tel, EntryState::Init, None))
             button .btn1 {
                 span { "Submit" }
             }
@@ -144,17 +144,35 @@ pub enum EntryState {
     Invalid,
 }
 
-pub fn entry(name: &str, value: &str, state: EntryState, small: Option<String>) -> Markup {
+pub enum EntrySchema {
+    Text,
+    Email,
+    Tel,
+}
+
+pub fn entry(
+    name: &str,
+    value: &str,
+    schema: EntrySchema,
+    state: EntryState,
+    small: Option<String>,
+) -> Markup {
     let class = match state {
         EntryState::Init => "",
         EntryState::Valid => "valid",
         EntryState::Invalid => "invalid",
     };
 
+    let schema = match schema {
+        EntrySchema::Text => "text",
+        EntrySchema::Email => "email",
+        EntrySchema::Tel => "tel",
+    };
+
     html! {
         #entry .(class) {
             label for=(name) { (name) }
-            input #(name) type="text" name=(name) required="required" value=(value)
+            input #(name) type=(schema) name=(name) required="required" value=(value)
                 hx-put=(format!("/dubai/{}", name)) hx-swap="outerHTML" hx-sync="input:queue" hx-target="closest #entry" {}
             @if let Some(small) = small {
                 small { (small) }
