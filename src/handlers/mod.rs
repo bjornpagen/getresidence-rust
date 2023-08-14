@@ -231,11 +231,6 @@ impl FromStr for Phone {
     type Err = Error;
 
     fn from_str(phone: &str) -> Result<Self> {
-        fn strip_non_numeric(s: &str) -> String {
-            s.chars().filter(|c| c.is_numeric()).collect()
-        }
-        let phone = strip_non_numeric(phone);
-        let phone = format!("+{}", phone);
         let res = phonenumber::parse(None, &phone).map_err(|e| Error::from(e.to_string()))?;
         let int = res
             .format()
@@ -404,7 +399,7 @@ pub async fn get_dubai(mut req: Request, ctx: RouteContext<()>) -> Result<Respon
         },
         match &row.phone {
             Some(phone) => phone.as_ref(),
-            None => "",
+            None => "+1",
         },
     );
     let main = html! {
