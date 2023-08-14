@@ -18,8 +18,7 @@ maud = "*"
 branca = "*"
 getrandom = { version = "*", features = ["js"] }
 base64 = "*"
-regex = "*"
-phonenumber = "0.3.2"
+phonenumber = "*"
 
 [profile.release]
 lto = true
