@@ -126,7 +126,7 @@ pub fn base_layout(
 
 pub async fn get_root(req: Request, _: RouteContext<()>) -> Result<Response> {
     let baseurl = req.headers().get("host")?.ok_or("host header not set")?;
-    let http_whitelist = vec!["localhost:8787", "127.0.0.1:8787"];
+    let http_whitelist = ["localhost:8787", "127.0.0.1:8787"];
 
     // if localhost, http, otherwise, https
     let proto = if http_whitelist.contains(&baseurl.as_str()) {
